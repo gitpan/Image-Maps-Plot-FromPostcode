@@ -1,8 +1,8 @@
 package Image::Maps::Plot::FromPostcode; # where in the world are London.pm members?
 
-our $VERSION = 0.025;
+our $VERSION = 0.0251;
 our $DATE = "Fri 06 July 19:18 2001 BST";
-
+# revised 19/07/2001
 use 5.006;
 use strict;
 use warnings;
@@ -797,7 +797,7 @@ The public domain maps provided with this distribution are the property of their
 
 #	use Image::Maps::Plot::FromPostcode;
 
-	Image::Maps::Plot::FromPostcode::all("E:/src/pl/");
+#	Image::Maps::Plot::FromPostcode::all("E:/src/pl/");
 
 1;
 
