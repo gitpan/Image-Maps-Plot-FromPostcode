@@ -1,8 +1,7 @@
 package Image::Maps::Plot::FromPostcode; # where in the world are London.pm members?
 
-our $VERSION = 0.0251;
-our $DATE = "Fri 06 July 19:18 2001 BST";
-# revised 19/07/2001
+our $VERSION = 1.0;
+our $DATE = "Mon 28 May 09:59 2002 CET"; #"Fri 06 July 19:18 2001 BST";
 use 5.006;
 use strict;
 use warnings;
@@ -14,7 +13,7 @@ use Image::GD::Thumbnail 0.011;
 
 =head1 NAME
 
-Image::Maps::Plot::FromPostcode - where in the world are London.pm members?
+Image::Maps::Plot::FromPostcode - plots postcodes on world/regional map images/HTML
 
 =head1 SYNOPSIS
 
@@ -40,7 +39,7 @@ Image::Maps::Plot::FromPostcode - where in the world are London.pm members?
 
 Plots postcode-defined points on JPEG maps, and creates an HTML page with an image map to display the image.
 
-I was bored and got this message:
+I was bored and got this message on a list:
 
 	From: london.pm-admin@london.pm.org
 	[mailto:london.pm-admin@london.pm.org]On Behalf Of Philip Newton
@@ -74,6 +73,7 @@ mailing list, for the week starting 2001-06-18:
 
 	In other news: ... a london.pm world map ...
 
+Hence the module.
 
 =head1 PREREQUISITES
 
