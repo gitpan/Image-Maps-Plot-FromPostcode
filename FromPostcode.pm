@@ -1,6 +1,6 @@
 package Image::Maps::Plot::FromPostcode; # where in the world are London.pm members?
 
-our $VERSION = 0.02;
+our $VERSION = 0.021;
 our $DATE = "Mon Jun 25 10:00:41 2001 BST";
 
 use 5.006;
@@ -28,7 +28,7 @@ Image::Maps::Plot::FromPostcode - where in the world are London.pm members?
 
 =head1 DESCRIPTION
 
-Imports a world map, and exports a world map with details of London.pm users scrawled over it, wrapped in an HTML page.  This is a quick hack - no SQL, no CGI, no nice WWW look-ups, nothing.
+Plots postcode-defined points on JPEG maps, and creates an HTML page with an image map to display the image.
 
 I was bored and got this message:
 
@@ -135,7 +135,7 @@ our %MAPS = (
 		ONEMILE 		=> 0.0342,	# was 0.0056, better with 0.0348
 	},
 	"THE UK" 	=> {
-		FILE	  	=> "uk_stretched.jpg",
+		FILE	  	=> "uk.jpg",
 		DIM 	  	=> [363,447],
 		SPOTSIZE	=> 4,
 		ANCHOR_PIXELS => [305,388],		# Greenwich
@@ -178,7 +178,7 @@ defined elsewhere, and documented L<below|"ADDING MAPS">.
 
 =item PATH
 
-The path at which to save - supply a dummy filename, please, coz I'm lazy.
+The path at which to save - will use the filename you supply, but please include an extension, coz I'm lazy.
 You will receive a C<.jpg> and C<.html> file in return.
 
 =item DBNAME
@@ -285,7 +285,8 @@ sub new { my $class = shift;
 
 A subroutine, not a method, that produces all available maps, and an index page.
 
-It accepts two argument, a path at which files can be built, and blurb to add beneath the list of hyperlinks to the maps.
+It accepts four arguments, a path at which files can be built,
+a filename prefix (see L<"new">), a title, and blurb to add beneath the list of hyperlinks to the maps.
 
 The following files are produced:
 
@@ -302,31 +303,35 @@ You may also wish to look at and adjust the instance variable C<CREATIONTXT>.
 
 =cut
 
-sub all { my ($file_path,$blurb) = (shift,shift);
-	my ($fname,$fpath,$ext) = fileparse($file_path,'(\.[^.]*)?$' );
-	die "Please supply a base path as requeseted in the POD.\n" if not defined $file_path;
+sub all { my ($fpath,$fnprefix,$title,$blurb) = (@_);
+	die "Please supply a base dir as requeseted in the POD.\n" if not defined $fpath or !-d $fpath;
+	if ($fpath !~ /(\/|\\)$/){$fpath.="/";}
+	$fnprefix = '' if not defined $fnprefix;
+	if (not defined $title) {
+		$title = "London.pm";
+	}
 	if (not defined $blurb) {
 		$blurb =
-		"These maps were created on ".(scalar localtime)." by ".__PACKAGE__,
-		", available on <A href='http://search.cpan.org'>CPAN</A>, from data last updated on $DATE."."<P>Currently the three maps are not cross-mapped, nor postcodes looked up - maybe they will be soon.</P>"."<P>Maps originate either from the CIA (who placed them in the public domain), or unknown sources (defunct personal pages on the web)."."<BR><HR><P><SMALL>Copyright (C) <A href='mailto:lGoddard\@CPAN.Org'>Lee Goddard</A> 2001 - available under teh same terms as Perl itself</SMALL></P>";
+		"These maps were created on ".(scalar localtime)." by ".__PACKAGE__;
+		$blurb .=", available on <A href='http://search.cpan.org'>CPAN</A>, from data last updated on $DATE."."<P>Currently the three maps are not cross-mapped, nor postcodes looked up - maybe they will be soon.</P>"."<P>Maps originate either from the CIA (who placed them in the public domain), or unknown sources (defunct personal pages on the web)."."<BR><HR><P><SMALL>Copyright (C) <A href='mailto:lGoddard\@CPAN.Org'>Lee Goddard</A> 2001 - available under teh same terms as Perl itself</SMALL></P>";
 	};
 	my $self = bless {};
 	$self->{HTML} = '';
-	$self->_add_html_top("$self->{TITLE} Maps Index");
-	$self->{HTML} .= "<H1>$self->{TITLE}  Maps<HR></H1>\n<UL>";
+	$self->_add_html_top("$title Maps Index");
+	$self->{HTML} .= "<H1>$title Maps<HR></H1>\n<UL>";
 
 	foreach my $map (keys %MAPS){
 		$map =~ /(\w+)$/;
 		die "Error making filename: didn't match regex" if not defined $1;
 		$_ = __PACKAGE__;
-		my $mapmaker = new (__PACKAGE__,{MAP=>$map, PATH=>$fpath.$self->{FNPREFIX}.$1});
-		$self->{HTML}.="<LI><A href='$self->{FNPREFIX}$1.html'>$1</A></LI>\n";
+		my $mapmaker = new (__PACKAGE__,{MAP=>$map, PATH=>$fpath.$fnprefix.$1});
+		$self->{HTML}.="<LI><A href='$fnprefix$1.html'>$1</A></LI>\n";
 	}
 
 	$self->{HTML}.="</UL>";
 	$self->{HTML}.=$blurb;
 	$self->_add_html_bottom;
-	open OUT,">$fpath$self->{FNPREFIX}"."index.html" or die "Couldn't open <$fpath$self->{FNPREFIX}"."index.html> for writing";
+	open OUT,">$fpath$fnprefix"."index.html" or die "Couldn't open <$fpath$fnprefix"."index.html> for writing";
 	print OUT $self->{HTML};
 	close OUT;
 }
@@ -495,7 +500,7 @@ sub _add_html_bottom { my ($self) = (shift);
 #	said in 'O' level Maths....
 #
 sub _latlon_to_xy { my ($map,$lat,$lon) = (@_);
-	if ($lat>90) {warn "\t...can't add, incomplete/missing location details ($lat,$lon).\n"; return undef;}
+	if ($lat>90) {warn "\t...can't add, incomplete/missing location details ($lat,$lon).\n" if $chat; return undef;}
 	# Lat, Lon in miles
 	my $m_lat = $lat - @{$MAPS{$map}->{ANCHOR_LATLON}}[0];
 	my $m_lon = $lon - @{$MAPS{$map}->{ANCHOR_LATLON}}[1];
