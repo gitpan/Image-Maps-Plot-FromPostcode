@@ -1,6 +1,6 @@
 package Image::Maps::Plot::FromPostcode; # where in the world are London.pm members?
 
-our $VERSION = 0.021;
+our $VERSION = 0.022;
 our $DATE = "Mon Jun 25 10:00:41 2001 BST";
 
 use 5.006;
@@ -9,7 +9,8 @@ use warnings;
 use GD;
 use File::Basename;
 use Data::Dumper;
-use WWW::MapBlast;
+use WWW::MapBlast 0.02;
+use Image::GD::Thumbnail 0.011;
 
 =head1 NAME
 
@@ -72,7 +73,8 @@ mailing list, for the week starting 2001-06-18:
 	GD;
 	strict;
 	warnings.
-	WWW::MapBlast
+	WWW::MapBlast 0.02
+	Image::GD::Thumbnail 0.011
 
 =head1 DISTRIBUTION CONTENTS
 
@@ -283,18 +285,18 @@ sub new { my $class = shift;
 
 =head2 &all (base_path,base_url)
 
-A subroutine, not a method, that produces all available maps, and an index page.
+A subroutine, not a method, that produces all available maps, and an index page with thumbnails.
 
 It accepts four arguments, a path at which files can be built,
 a filename prefix (see L<"new">), a title, and blurb to add beneath the list of hyperlinks to the maps.
 
-The following files are produced:
+An index page will be produced, linking to the following files for each map:
 
 =over 4
 
-m_C<MAPNAME>.jpg * number of maps
-m_C<MAPNAME>.html * number of maps
-m_index.html
+m_C<MAPNAME>.jpg
+m_C<MAPNAME>_t.jpg
+m_C<MAPNAME>.html
 
 =back
 
@@ -313,22 +315,27 @@ sub all { my ($fpath,$fnprefix,$title,$blurb) = (@_);
 	if (not defined $blurb) {
 		$blurb =
 		"These maps were created on ".(scalar localtime)." by ".__PACKAGE__;
-		$blurb .=", available on <A href='http://search.cpan.org'>CPAN</A>, from data last updated on $DATE."."<P>Currently the three maps are not cross-mapped, nor postcodes looked up - maybe they will be soon.</P>"."<P>Maps originate either from the CIA (who placed them in the public domain), or unknown sources (defunct personal pages on the web)."."<BR><HR><P><SMALL>Copyright (C) <A href='mailto:lGoddard\@CPAN.Org'>Lee Goddard</A> 2001 - available under teh same terms as Perl itself</SMALL></P>";
+		$blurb .=", available on <A href='http://search.cpan.org'>CPAN</A>, from data last updated on $DATE."
+		."<P>Maps originate either from the CIA (who placed them in the public domain), or unknown sources (defunct personal pages on the web)."."<BR><HR><P><SMALL>Copyright (C) <A href='mailto:lGoddard\@CPAN.Org'>Lee Goddard</A> 2001 - available under teh same terms as Perl itself</SMALL></P>";
 	};
 	my $self = bless {};
 	$self->{HTML} = '';
 	$self->_add_html_top("$title Maps Index");
-	$self->{HTML} .= "<H1>$title Maps<HR></H1>\n<UL>";
+	$self->{HTML} .= "<H1>$title Maps<HR></H1>\n";
 
 	foreach my $map (keys %MAPS){
 		$map =~ /(\w+)$/;
 		die "Error making filename: didn't match regex" if not defined $1;
 		$_ = __PACKAGE__;
 		my $mapmaker = new (__PACKAGE__,{MAP=>$map, PATH=>$fpath.$fnprefix.$1});
-		$self->{HTML}.="<LI><A href='$fnprefix$1.html'>$1</A></LI>\n";
+		my ($tx,$ty) = _create_thumbnail($fpath.$fnprefix.$1);
+		$self->{HTML}.="<P><A href='$fnprefix$1.html'>";
+		$self->{HTML}.="<IMG src='$fnprefix$1_t.jpg' hspace='12' border='1' width='$tx' height='$ty'>";
+		$self->{HTML}.="$1";
+		$self->{HTML}.="</A></P>\n";
 	}
 
-	$self->{HTML}.="</UL>";
+	$self->{HTML}.="<P>&nbsp;</P>";
 	$self->{HTML}.=$blurb;
 	$self->_add_html_bottom;
 	open OUT,">$fpath$fnprefix"."index.html" or die "Couldn't open <$fpath$fnprefix"."index.html> for writing";
@@ -615,6 +622,32 @@ sub remove_entry { my ($name) = (shift);
 }
 
 
+#
+# _create_thumbnail (path to image, size of longest side)
+# Creates and saves a thumbnail of the specified image.
+# Returns the name of the image
+#
+sub _create_thumbnail { my ($path,$size) = (shift,shift);
+	# Load your source image
+	die "Passed no filepath to create_thumbnail " if not defined $path;
+	$path .= '.jpg';
+	die "Passed bad filepath to create_thumbnail <$path>" if not defined $path or not -e $path;
+	$size = 75 if not defined $size;
+	open IN, $path  or die "Could not open <$path> although it exists.";
+	my $srcImage = GD::Image->newFromJpeg(*IN);
+	close IN;
+
+	# Create the thumbnail from it, where the biggest side is 50 px
+	my ($thumb,$x,$y) = Image::GD::Thumbnail::create($srcImage,$size);
+	$path =~ s/\.jpg$/_t.jpg/;
+	# Save your thumbnail
+	open OUT, ">$path" or die "Could not save as <$path> ";
+	binmode OUT;
+	print OUT $thumb->jpeg;
+	close OUT;
+	return $x,$y;
+}
+
 =head1 NOTES ON LATITUDE AND LONGITUDE
 
 After L<http://www.mapblast.com/myblast/helpFaq.mb#2|http://www.mapblast.com/myblast/helpFaq.mb#2>:
@@ -661,7 +694,6 @@ sub _make_latlon {
 		}
 	}
 }
-
 
 =head1 ADDING MAPS
 
@@ -711,7 +743,7 @@ scalar representation of 1 mile in pixels
 
 =head1 SEE ALSO
 
-perl(1); L<GD>; L<File::Basename>; L<Acme::Pony>; L<Data::Dumper>; L<WWW::MapBlast>.
+perl(1); L<GD>; L<File::Basename>; L<Acme::Pony>; L<Data::Dumper>; L<WWW::MapBlast>; L<Image::GD::Thumbnail>
 
 =head1 THANKS
 
@@ -736,7 +768,9 @@ The public domain maps provided with this distribution are the property of their
 
 1;
 
+__END__
+
 # $Image::Maps::Plot::FromPostcode::chat = 1;
 # new Image::Maps::Plot::FromPostcode (MAP=>"LONDON","PATH"=>"E:/src/pl/out.html");
-# &all("E:/src/pl/",$text);
+# &all("E:/src/pl/");
 # exit;
