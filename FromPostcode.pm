@@ -1,7 +1,7 @@
 package Image::Maps::Plot::FromPostcode; # where in the world are London.pm members?
 
-our $VERSION = 0.023;
-our $DATE = "Mon Jun 25 10:00:41 2001 BST";
+our $VERSION = 0.024;
+our $DATE = "Fri Jun 29 17:00:00 2001 BST";
 
 use 5.006;
 use strict;
@@ -264,7 +264,6 @@ sub new { my $class = shift;
 
 	# Now we have the argument for the map in question:
 	$self->_add_html_top;
-	$self->_add_map_top;
 
 	# Add the anchor point for author's reference - remove late
 	if (exists $self->{INCLUDEANCHOR}){
@@ -281,9 +280,7 @@ sub new { my $class = shift;
 			);
 		}
 	}
-
 	$self->_populate;
-	$self->_add_map_bottom;
 	$self->_add_html_bottom;
 
 	$self->_save;
@@ -328,9 +325,7 @@ sub all { my ($fpath,$fnprefix,$title,$blurb) = (@_);
 		."<P>Maps originate either from the CIA (who placed them in the public domain), or unknown sources (defunct personal pages on the web)."."<BR><HR><P><SMALL>Copyright (C) <A href='mailto:lGoddard\@CPAN.Org'>Lee Goddard</A> 2001 - available under the same terms as Perl itself</SMALL></P>";
 	};
 	my $self = bless {};
-	$self->{HTML} = '';
-	$self->_add_html_top("$title Maps Index");
-	$self->{HTML} .= "<H1>$title Maps<HR></H1>\n";
+	$self->{HTML} = "<html><head><title>$title Map Index</title><meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'></head><body><H1>$title Maps<HR></H1>\n";
 
 	foreach my $map (keys %MAPS){
 		$map =~ /(\w+)$/;
@@ -344,9 +339,9 @@ sub all { my ($fpath,$fnprefix,$title,$blurb) = (@_);
 		$self->{HTML}.="</A></P>\n";
 	}
 
-	$self->{HTML}.="<P>&nbsp;</P>";
-	$self->{HTML}.=$blurb;
-	$self->_add_html_bottom;
+
+	$self->{HTML}.=$blurb . "</body></html>\n\n";
+
 	open OUT,">$fpath$fnprefix"."index.html" or die "Couldn't open <$fpath$fnprefix"."index.html> for writing";
 	print OUT $self->{HTML};
 	close OUT;
@@ -464,36 +459,28 @@ sub _add_to_map { my ($self, $x,$y,$name,$place) = (@_);
 
 
 #
-# Private methods: _add_html_top, _add_map_top, _add_map_bottom, _add_html_bottom
+# Private methods: _add_html_top,  _add_html_bottom
 #
 # Call before adding elements to the map, to initiate up the HTML image map, and include the HTML iamge.
 # Optional second argument used as HTML TITLE element contents when no $self->{MAP} has been defined.
 #
 sub _add_html_top { my $self=shift;
-	$self->{HTML} =
-	"<html><head><title>";
+	$self->{HTML} =	"<html><head><title>";
 	if (exists $self->{MAP}){
 		$self->{HTML}.="$self->{TITLE} $self->{MAP} map";
 	} else {
 		$self->{HTML} .= $_[0] if defined $_[0];
 	}
-	$self->{HTML} .= "</title><meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'></head>\n<body>\n"
-}
-
-sub _add_map_top { my ($self ) = (shift);
+	$self->{HTML} .= "</title><meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'></head>\n<body>\n";
 	my ($x,$y) = $self->{IM}->getBounds();
 	$self->{HTML}
 		.="<div align='center'>\n"
 		. "<img src='$self->{IMGPATH}' width='$x' height='$y' usemap='#$self->{MAP}' border='1'>\n"
-		. "<map name='$self->{MAP}'>\n\n"
-	.$self->{HTML};
-}
-
-sub _add_map_bottom { my ($self) = (shift);
-	$self->{HTML} .= "\n</map>\n</div>\n";
+		. "<map name='$self->{MAP}'>\n\n";
 }
 
 sub _add_html_bottom { my ($self) = (shift);
+	$self->{HTML} .= "\n</map>\n</div>\n";
 	$self->{HTML} .= "\n</body></html>\n\n";
 }
 
@@ -797,5 +784,6 @@ The public domain maps provided with this distribution are the property of their
 
 1;
 
+Image::Maps::Plot::FromPostcode::all("E:/temp");
 __END__
 
