@@ -1,7 +1,7 @@
 package Image::Maps::Plot::FromPostcode; # where in the world are London.pm members?
 
-our $VERSION = 0.024;
-our $DATE = "Fri Jun 29 17:00:00 2001 BST";
+our $VERSION = 0.025;
+our $DATE = "Fri 06 July 19:18 2001 BST";
 
 use 5.006;
 use strict;
@@ -252,7 +252,7 @@ sub new { my $class = shift;
 	my ($name,$path,$suffix) = fileparse($self->{PATH},'(\.[^.]*)?$' );
 	die  "Please supply a filepath with a dummy extension" if not defined $name;
 	$self->{PATH} = $path.$name;
-	$self->{IMGPATH} = $path.$name.'.jpg';
+	$self->{IMGPATH} = $name.'.jpg';
 
 	# Try to load the image into our object as a GD object
 	die "There is no option for a map of $self->{MAP}" if not exists $MAPS{$self->{MAP}};
@@ -264,6 +264,7 @@ sub new { my $class = shift;
 
 	# Now we have the argument for the map in question:
 	$self->_add_html_top;
+	$self->_add_map_top;
 
 	# Add the anchor point for author's reference - remove late
 	if (exists $self->{INCLUDEANCHOR}){
@@ -280,7 +281,9 @@ sub new { my $class = shift;
 			);
 		}
 	}
+
 	$self->_populate;
+	$self->_add_map_bottom;
 	$self->_add_html_bottom;
 
 	$self->_save;
@@ -312,7 +315,7 @@ You may also wish to look at and adjust the instance variable C<CREATIONTXT>.
 =cut
 
 sub all { my ($fpath,$fnprefix,$title,$blurb) = (@_);
-	die "Please supply a base dir as requeseted in the POD.\n" if not defined $fpath or !-d $fpath;
+	die "Please supply a PATH as requeseted in the POD.\n" if not defined $fpath or !-d $fpath;
 	if ($fpath !~ /(\/|\\)$/){$fpath.="/";}
 	$fnprefix = '' if not defined $fnprefix;
 	if (not defined $title) {
@@ -325,7 +328,9 @@ sub all { my ($fpath,$fnprefix,$title,$blurb) = (@_);
 		."<P>Maps originate either from the CIA (who placed them in the public domain), or unknown sources (defunct personal pages on the web)."."<BR><HR><P><SMALL>Copyright (C) <A href='mailto:lGoddard\@CPAN.Org'>Lee Goddard</A> 2001 - available under the same terms as Perl itself</SMALL></P>";
 	};
 	my $self = bless {};
-	$self->{HTML} = "<html><head><title>$title Map Index</title><meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'></head><body><H1>$title Maps<HR></H1>\n";
+	$self->{HTML} = '';
+	$self->_add_html_top("$title Maps Index");
+	$self->{HTML} .= "<H1>$title Maps<HR></H1>\n";
 
 	foreach my $map (keys %MAPS){
 		$map =~ /(\w+)$/;
@@ -339,9 +344,9 @@ sub all { my ($fpath,$fnprefix,$title,$blurb) = (@_);
 		$self->{HTML}.="</A></P>\n";
 	}
 
-
-	$self->{HTML}.=$blurb . "</body></html>\n\n";
-
+	$self->{HTML}.="<P>&nbsp;</P>";
+	$self->{HTML}.=$blurb;
+	$self->_add_html_bottom;
 	open OUT,">$fpath$fnprefix"."index.html" or die "Couldn't open <$fpath$fnprefix"."index.html> for writing";
 	print OUT $self->{HTML};
 	close OUT;
@@ -459,19 +464,23 @@ sub _add_to_map { my ($self, $x,$y,$name,$place) = (@_);
 
 
 #
-# Private methods: _add_html_top,  _add_html_bottom
+# Private methods: _add_html_top, _add_map_top, _add_map_bottom, _add_html_bottom
 #
 # Call before adding elements to the map, to initiate up the HTML image map, and include the HTML iamge.
 # Optional second argument used as HTML TITLE element contents when no $self->{MAP} has been defined.
 #
 sub _add_html_top { my $self=shift;
-	$self->{HTML} =	"<html><head><title>";
+	$self->{HTML} =
+	"<html><head><title>";
 	if (exists $self->{MAP}){
 		$self->{HTML}.="$self->{TITLE} $self->{MAP} map";
 	} else {
 		$self->{HTML} .= $_[0] if defined $_[0];
 	}
-	$self->{HTML} .= "</title><meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'></head>\n<body>\n";
+	$self->{HTML} .= "</title><meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'></head>\n<body>\n"
+}
+
+sub _add_map_top { my ($self ) = (shift);
 	my ($x,$y) = $self->{IM}->getBounds();
 	$self->{HTML}
 		.="<div align='center'>\n"
@@ -479,8 +488,11 @@ sub _add_html_top { my $self=shift;
 		. "<map name='$self->{MAP}'>\n\n";
 }
 
-sub _add_html_bottom { my ($self) = (shift);
+sub _add_map_bottom { my ($self) = (shift);
 	$self->{HTML} .= "\n</map>\n</div>\n";
+}
+
+sub _add_html_bottom { my ($self) = (shift);
 	$self->{HTML} .= "\n</body></html>\n\n";
 }
 
@@ -754,6 +766,7 @@ scalar representation of 1 mile in pixels
 
 =head1 REVSIONS
 
+0.25 Clean IMG path and double-header bugs
 0.22 Added thumbnail images to index page
 0.23 Added more documentation; escaping of href text
 
@@ -782,8 +795,11 @@ The public domain maps provided with this distribution are the property of their
 
 =cut
 
+#	use Image::Maps::Plot::FromPostcode;
+
+	Image::Maps::Plot::FromPostcode::all("E:/src/pl/");
+
 1;
 
-Image::Maps::Plot::FromPostcode::all("E:/temp");
 __END__
 
