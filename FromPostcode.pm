@@ -1,6 +1,6 @@
 package Image::Maps::Plot::FromPostcode; # where in the world are London.pm members?
 
-our $VERSION = 0.022;
+our $VERSION = 0.023;
 our $DATE = "Mon Jun 25 10:00:41 2001 BST";
 
 use 5.006;
@@ -20,11 +20,20 @@ Image::Maps::Plot::FromPostcode - where in the world are London.pm members?
 
 	use Image::Maps::Plot::FromPostcode;
 
+	# Create a single map
+
 	new Image::Maps::Plot::FromPostcode (MAP=>"THE WORLD","PATH"=>"E:/src/pl/out.html");
 
-	# or
+	# Create all possible maps
 
 	Image::Maps::Plot::FromPostcode::all("E:/src/pl/");
+
+	# Add a user to the db
+
+	Image::Maps::Plot::FromPostcode::load_db (".earth.dat");
+	Image::Maps::Plot::FromPostcode::add_entry ('Peter Smith','United Kingdom','BS7 29JT');
+	Image::Maps::Plot::FromPostcode::save_db (".london.pm.dat");
+
 	__END__
 
 =head1 DESCRIPTION
@@ -316,7 +325,7 @@ sub all { my ($fpath,$fnprefix,$title,$blurb) = (@_);
 		$blurb =
 		"These maps were created on ".(scalar localtime)." by ".__PACKAGE__;
 		$blurb .=", available on <A href='http://search.cpan.org'>CPAN</A>, from data last updated on $DATE."
-		."<P>Maps originate either from the CIA (who placed them in the public domain), or unknown sources (defunct personal pages on the web)."."<BR><HR><P><SMALL>Copyright (C) <A href='mailto:lGoddard\@CPAN.Org'>Lee Goddard</A> 2001 - available under teh same terms as Perl itself</SMALL></P>";
+		."<P>Maps originate either from the CIA (who placed them in the public domain), or unknown sources (defunct personal pages on the web)."."<BR><HR><P><SMALL>Copyright (C) <A href='mailto:lGoddard\@CPAN.Org'>Lee Goddard</A> 2001 - available under the same terms as Perl itself</SMALL></P>";
 	};
 	my $self = bless {};
 	$self->{HTML} = '';
@@ -436,6 +445,9 @@ sub _add_to_map { my ($self, $x,$y,$name,$place) = (@_);
 			return undef;
 	}
 
+	$name  =~ s/'/\\'/g;
+	$place =~ s/'/\\'/g;
+
 	for (0..$MAPS{$self->{MAP}}->{SPOTSIZE}){
 		$self->{IM}->arc($x,$y,$MAPS{$self->{MAP}}->{SPOTSIZE}-$_,$MAPS{$self->{MAP}}->{SPOTSIZE}-$_,0,360,$self->{SPOTCOLOUR});
 	}
@@ -531,22 +543,14 @@ sub _latlon_to_xy { my ($map,$lat,$lon) = (@_);
 }
 
 
-=head2 &save_db
 
-A subroutine, not a method, that saves the database to the filename specified as the only arguemnt.
+=head2 &load_db
+
+A subroutine that loads a database hash from the specified path.
 
 Returns nothing, but does C<die> on failure.
 
 =cut
-
-# Simply uses C<Data::Dumper> to dump the hash that stores the user values
-
-sub save_db { my $dbname = shift;
-	local *OUT;
-	open OUT,">$dbname" or die "Couldn't open the configuration file <$dbname> for writing";
-	print OUT Dumper(\%locations);
-	close OUT;
-}
 
 sub load_db { my $dbname = shift;
 	local *IN;
@@ -561,6 +565,25 @@ sub load_db { my $dbname = shift;
 }
 
 
+=head2 &save_db
+
+A subroutine, not a method, that saves the currently loaded database hash to the filename specified as the only arguemnt.
+
+Note tha tyou may want to load a db before saving.
+
+Returns nothing, but does C<die> on failure.
+
+=cut
+
+# Simply uses C<Data::Dumper> to dump the hash that stores the user values
+
+sub save_db { my $dbname = shift;
+	local *OUT;
+	open OUT,">$dbname" or die "Couldn't open the configuration file <$dbname> for writing";
+	print OUT Dumper(\%locations);
+	close OUT;
+}
+
 
 =head2 &add_entry
 
@@ -572,7 +595,8 @@ If an entry already exists for $name, will return C<undef> unless
 the global scalar C<$ADDENTRY> is set to it's default value of C<MULTIPLE>,
 in which case $name will be appended with $country and $postcode.
 
-Does not save them to file - you must do that manually (L<"save_db">).
+Does not save them to file - you must do that manually (L<"save_db">), but
+note that you may wish to load the db before adding to it and saving.
 
 Incidentaly returns a reference to the new key.
 
@@ -741,6 +765,11 @@ scalar representation of 1 mile in pixels
 
 =back
 
+=head1 REVSIONS
+
+0.22 Added thumbnail images to index page
+0.23 Added more documentation; escaping of href text
+
 =head1 SEE ALSO
 
 perl(1); L<GD>; L<File::Basename>; L<Acme::Pony>; L<Data::Dumper>; L<WWW::MapBlast>; L<Image::GD::Thumbnail>
@@ -770,7 +799,3 @@ The public domain maps provided with this distribution are the property of their
 
 __END__
 
-# $Image::Maps::Plot::FromPostcode::chat = 1;
-# new Image::Maps::Plot::FromPostcode (MAP=>"LONDON","PATH"=>"E:/src/pl/out.html");
-# &all("E:/src/pl/");
-# exit;
